@@ -15,12 +15,12 @@ from yad2k.models.keras_yolo import yolo_eval, yolo_head
 ---# GLOBAL VARIABLES #---
 '''
 #USER SETTINGS :
+video_input = "rtsp://192.168.10.10:554/s0"
 maxDays = 7                      #The recorded videos will be destroyed after "maxDays" days
 baseFolder = "/var/www/html/"    #Apache's base folder
-scriptFolder = "/home/pi/PiCamNN/" #The folder which contains main script (picam.py)
-num_cam = -1       #Number of the camera (if -1 it will be the first camera read by the system)
+scriptFolder = "/home/dima/Projects/smart-cameras/PiCamNN/" #The folder which contains main script (picam.py)
 frame_check = 17   #Frames to check before quit
-time_chunck = 15   #Time to consider for a new action
+time_chunck = 2   #Time to consider for a new action
 telegram_user = "" #Your telegram user name so all the images will be sent to your telegram char with yourself
 
 #IMAGES VARIABLES:
@@ -128,11 +128,14 @@ def yoloThread():
 
     print("[PiCam] YOLO Thread started!")
 ### Loop:
+    M = cv2.getRotationMatrix2D((w/2,h/2),90,1)
     while True:
         if len(frames) != 0:
             try:
                 cv2.waitKey(17) 
                 mat = frames[0] #Get First frame with movements
+                mat = cv2.warpAffine(mat,M,(w,h))
+                cv2.imwrite('/tmp/img.jpg', mat)
                 mat = cv2.resize(mat,(model_image_size[0],model_image_size[1]))
                 in_mat = np.array(mat,dtype='float32')
                 in_mat /= 255.  #Removing mean
@@ -156,17 +159,20 @@ def yoloThread():
                                 xs.append(right-i)
                                 ys.append(top+i)
                                 ys.append(bottom-i)
-                        if writ:
+                        if True:
                             img_name = scriptFolder+"imgs/{}.png".format(num)
-                            cv2.imwrite(img_name,mat[min(ys):max(ys),min(xs):max(xs)]) #Only saving the rectangle in which persons' got detected
+                            # cv2.imwrite(img_name,mat[min(ys):max(ys),min(xs):max(xs)]) #Only saving the rectangle in which persons' got detected
+                            ### D.Platon changes. Save whole frame with highlighted person.
+                            cv2.rectangle(mat, (min(xs), min(ys)), (max(xs), max(ys)), (0, 255, 0), 2)
+                            cv2.imwrite(img_name, mat)
                             out_s = "[{}] Detected person (taken {}s)!\n".format(time.strftime("%H:%M:%S"),round(time.time()-times[0])) #Log output
                             print(out_s)
                             flog.write(out_s)
                             flog.flush()
-                            try: #Preventig Problems like no connection #I've used subprocess to set a timeout
-                                subprocess.call("telegram-cli -W -e \'send_photo {} {} \' ".format(telegram_user,img_name),timeout=30,shell=True)
-                            except Exception as exc:
-                                print("[PiCam] Some error occured in YOLO Thread ({}) :".format(time.strftime("%H:%M:%S")),exc)
+                            #try: #Preventig Problems like no connection #I've used subprocess to set a timeout
+                            #    subprocess.call("telegram-cli -W -e \'send_photo {} {} \' ".format(telegram_user,img_name),timeout=30,shell=True)
+                            #except Exception as exc:
+                            #    print("[PiCam] Some error occured in YOLO Thread ({}) :".format(time.strftime("%H:%M:%S")),exc)
                             num += 1
                             old_time = times[0] #Updating detection time
             except Exception as ex:
@@ -185,7 +191,7 @@ if __name__ == "__main__":
 #Camera Input
     cap = None
     try:
-        cap = cv2.VideoCapture(num_cam) #Trying to open camera
+        cap = cv2.VideoCapture(video_input) #Trying to open camera
         _,dim = cap.read()
         if not _ or dim.shape == (0,0,0) :
             printExit("[PiCam] Error occured when opening the camera stream!")

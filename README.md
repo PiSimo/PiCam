@@ -14,6 +14,24 @@ Survelliance system with deep learning based pedestrain detection (<a href="http
   -<a href="http://www.numpy.org/">Numpy</a><br />
   -<a href="https://www.keras.io">Keras 2</a> <br />
   
+  * Install dependencies
+  
+  - sudo apt-get install nginx
+  - sudo pip3 install opencv-python
+  - sudo pip3 install --upgrade tensorflow
+  - sudo pip3 install keras
+  - 
+```
+Using TensorFlow backend.
+Traceback (most recent call last):
+  File "picam.py", line 12, in <module>
+    from yad2k.models.keras_yolo import yolo_eval, yolo_head
+  File "/home/rafa/rs-components/smart-cameras/PiCamNN/yad2k/models/keras_yolo.py", line 10, in <module>
+    from ..utils import compose
+ImportError: cannot import name 'compose
+```
+  
+  
   <h1>Instructions for <a href="https://www.raspberrypi.org/downloads/raspbian/">Raspbian</a>:</h1>
   
   Follow those instructions after having installed all the requirements!
